@@ -71,7 +71,7 @@ describe('audit-public', () => {
     expect(audit(repo({'.env.example': 'X='})).code).toBe(0);
   });
 
-  it('fails on noindex', () => {
+  it('fails on a robots-blocking meta tag', () => {
     const r = audit(repo({'page.html': '<meta name="robots" content="' + 'no' + 'index">'}));
     expect(r.code).toBe(1);
     expect(r.out).toContain('indexing');
