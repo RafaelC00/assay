@@ -1,0 +1,10 @@
+{
+  "name": "MAP guard settings",
+  "description": "Set the sale percentage the MAP guard applies at checkout.",
+  "title": "Sale",
+  "loading": "Loading...",
+  "saleName": "Label shown at checkout",
+  "percentOff": "Percentage off",
+  "help": "Vendors with MAP terms are discounted no deeper than their floor, and MAP-protected items are never discounted.",
+  "invalid": "Enter a percentage between 1 and 100."
+}

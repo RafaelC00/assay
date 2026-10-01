@@ -1,0 +1,17 @@
+api_version = "2026-01"
+
+[[extensions]]
+name = "t:name"
+description = "t:description"
+handle = "map-guard-settings"
+uid = "6bbcbf7b-6d2f-4cf4-a16b-8205a6cc21f9d9a5ebf3"
+type = "ui_extension"
+
+  [[extensions.targeting]]
+  module = "./src/DiscountFunctionSettings.jsx"
+  target = "admin.discount-details.function-settings.render"
+
+  # The MAP guard function reads this metafield: {"percentOff": number, "name": string}.
+  [[extensions.metafields]]
+  namespace = "$app:map-guard"
+  key = "config"
