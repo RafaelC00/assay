@@ -5,16 +5,29 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The pre-public audit reads every commit, not just the tip.
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
       - run: npm ci
+      # Route types are generated first: bare `tsc` never sees them and passes
+      # on code that does not compile. `npm run typecheck` runs typegen then tsc.
       - name: Types
         run: npm run typecheck
       - name: Tests
@@ -26,3 +39,7 @@ jobs:
       # only warns is a number nobody reads.
       - name: Performance budget
         run: npm run perf:budget
+      # Fails on local paths, stray emails, credential shapes, tracked .env
+      # files and robots-blocking directives, in the tree and in every commit.
+      - name: Pre-public audit
+        run: npm run audit:public

@@ -3,6 +3,21 @@
   "private": true,
   "version": "0.1.0",
   "description": "Multi-brand premium supplement storefront with per-vendor MAP pricing rules.",
+  "homepage": "https://assay-gamma-ten.vercel.app",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RafaelC00/assay.git"
+  },
+  "bugs": {
+    "url": "https://github.com/RafaelC00/assay/issues"
+  },
+  "keywords": [
+    "shopify",
+    "hydrogen",
+    "react-router",
+    "map-pricing",
+    "storefront"
+  ],
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -13,7 +28,8 @@
     "test:watch": "vitest",
     "perf:budget": "node scripts/check-perf-budget.mjs",
     "db:migrate": "node scripts/migrate.mjs",
-    "shopify:provision": "node scripts/provision.mjs"
+    "shopify:provision": "node scripts/provision.mjs",
+    "audit:public": "node scripts/audit-public.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "1.1.0",
@@ -38,5 +54,8 @@
     "vite": "7.3.6",
     "vite-tsconfig-paths": "6.1.1",
     "vitest": "3.2.7"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
