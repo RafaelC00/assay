@@ -45,18 +45,19 @@ app/routes/                  Home, collection, product
 app/components/              Product card and image, MAP panels (sale ledger, price meter), assay report
 app/lib/images.ts            Shopify CDN srcset builder
 scripts/images/              Packaging plates, drawn labels, compositor, hero, idempotent Shopify upload
-server.ts                    Oxygen worker entry
+server/vercel.ts             Node SSR entry (production)
+server.ts                    Oxygen worker entry (unused in production)
 tests/                       Vitest (tests/map-parity.test.ts keeps storefront and checkout in step)
 migrations/                  SQL migrations for the metrics store (see Status)
 ```
 
 **Rule engine.** `applyDiscount(listPriceCents, requestedPct, terms)` in `app/lib/pricing/map.ts` is a pure function with no imports beyond a type. It returns the advertisable price, a status (`applied`, `clamped`, `excluded`, `none_requested`), a machine-readable reason code, and a sentence suitable for display. Invalid input throws `RangeError`.
 
-**Data boundary.** Routes read catalog data only through the `catalog` export in `app/lib/catalog/source.ts`, typed as the `CatalogSource` interface. It binds to `app/lib/catalog/shopify.ts` (Storefront API) when `PUBLIC_STOREFRONT_API_TOKEN` and `SHOPIFY_STORE_DOMAIN` are set, and to the local JSON otherwise. The Shopify source keeps one snapshot for 30 seconds per server instance. Nothing else in the app imports the JSON file. If MAP terms cannot be read from Shopify (no vendor profile, an unknown policy, a floor with no value) the product is treated as never discounted.
+**Data boundary.** Routes read catalog data only through the `catalog` export in `app/lib/catalog/source.ts`, typed as the `CatalogSource` interface. It binds to `app/lib/catalog/shopify.ts` (Storefront API) when `PUBLIC_STOREFRONT_API_TOKEN` and `SHOPIFY_STORE_DOMAIN` are set, and to the local JSON otherwise. **That choice is made once, at process start. It is not a runtime fallback**: if Shopify fails after the app has bound to it, the app does not switch to `data/catalog.json`. The Shopify source keeps one snapshot for 30 seconds per server instance, times out each request after 5 seconds, and when a refresh fails serves the last good snapshot for up to 10 minutes, reporting its age on `/healthz`. Past that, or with no snapshot at all, pages return a 500. Nothing else in the app imports the JSON file. If MAP terms cannot be read from Shopify (no vendor profile, an unknown policy, a floor with no value) the product is treated as never discounted.
 
 **Shopify model.** Vendor MAP policy is a metaobject, `assay_vendor` (fields `name`, `positioning`, `map_policy`, `map_floor_pct`; the entry handle is the vendor handle), because it is shared by every product of a vendor and edited once. Per-variant protection is the variant metafield `custom.map_protected`, because it varies per SKU. Products reference their vendor through `custom.vendor_profile` (metaobject reference) and carry their test panel in `custom.assay_panel`. Every definition must have storefront access `PUBLIC_READ`: a definition left at the default looks the same in the admin and returns null from the Storefront API. `npm run shopify:provision` (`scripts/provision.mjs`) creates all of it idempotently, repairs access on existing definitions, and needs `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_API_VERSION` and `SHOPIFY_ADMIN_TOKEN` in `.env`. The Admin token is for provisioning only and is never set in the deployed storefront. The active sale is site configuration and stays in `data/catalog.json`.
 
-**Stack.** Shopify Hydrogen tooling on React Router 7, TypeScript, Vite, Vitest. Server-side rendered on an Oxygen-compatible worker runtime.
+**Stack.** Shopify Hydrogen tooling on React Router 7, TypeScript, Vite, Vitest. Server-side rendered. Production runs a Node SSR bundle on Vercel; the Oxygen worker entry is kept but unused.
 
 **Copy.** Product descriptions state form, dosage, sourcing and testing only. They make no claims about treating or preventing any condition. A test in `tests/catalog.test.ts` checks the catalog copy against a list of claim terms.
 
@@ -158,7 +159,7 @@ The target is Lighthouse mobile at 90 or better and LCP under 2.5 s, enforced by
 
 ## Running it
 
-Requires Node 20 or later.
+Requires Node 20 or later. CI runs Node 22; production runs Node 24.
 
 ```
 npm install
@@ -172,7 +173,7 @@ npm run build      # production build into dist/
 
 Included: catalog model and data, MAP engine with tests, home page with an exclusions-aware sale banner, collection page with vendor filtering, product page with price and discount explanation.
 
-Not included: cart, checkout flow in the storefront, customer accounts.
+Not included: a cart, a checkout flow in the storefront, customer accounts. MAP is nonetheless enforced *at* checkout by the discount function, which is verified against real Storefront carts by `scripts/verify-checkout.mjs`.
 
 ## Status
 
@@ -184,7 +185,7 @@ Not included: cart, checkout flow in the storefront, customer accounts.
 
 **Honest about small samples.** A p75 over four visits is noise. A figure is only rendered when a group has at least 20 samples (`MIN_SAMPLES` in `app/lib/vitals/schema.ts`); below that the page shows the count and says there are too few samples. With no data at all it says so, and never renders a zero or a dash that could be read as health. The window is the last 7 days, and the page states when it was generated.
 
-**Privacy position.** Only these fields are stored: metric name, value, route pattern (such as `/products/:handle`, never the resolved URL and never a query string), a coarse device class (mobile or desktop, from the pointer type) and a timestamp. There is no column for anything else. The endpoint does not read the User-Agent, cookies or Referer; the beacon sets no cookie and uses no browser storage; there is no session or visitor identifier, so two visits cannot be linked. Unknown fields, metric names and routes are rejected rather than ignored, so free text cannot be smuggled in. Samples are deleted after 30 days.
+**Privacy position.** Only these fields are stored: metric name, value, route pattern (such as `/products/:handle`, never the resolved URL and never a query string), a coarse device class (mobile or desktop, from the pointer type) and a timestamp. There is no column for anything else. The endpoint does not read the User-Agent, cookies or Referer; the beacon sets no cookie and uses no browser storage; there is no session or visitor identifier, so two visits cannot be linked. Unknown fields, metric names and routes are rejected rather than ignored, so free text cannot be smuggled in. Samples older than 30 days are deleted opportunistically, on roughly 1 write in 100, so with low traffic some rows outlive 30 days before a prune runs.
 
 The client IP is used for one thing: a per-sender rate limit (30 requests a minute). It is turned into a keyed hash with a secret that lives only in process memory and is replaced every window, held in memory for that window, and never written anywhere. The limit is per server instance, so serverless instances do not share a count and a restart resets it. It is a brake on accidental loops and casual abuse, not a security boundary; the hard protection is strict validation and a 2 KiB body cap.
 
@@ -204,6 +205,24 @@ app/routes/status.tsx         /status
 ```
 
 **Running it.** The store is a Postgres database (Neon). Set `DATABASE_URL` for reads and writes, and run `npm run db:migrate` with `DATABASE_URL_UNPOOLED` set to apply the schema. Without `DATABASE_URL` the status page reports that measurements are unavailable, which is distinct from having no data.
+
+## Incidents and load testing
+
+Failures were induced on throwaway deployments, never on production, and written up with what
+detected each one, what did not, and what is still open.
+
+- [01 — the Shopify upstream fails or hangs](notes/incidents/01-upstream-failure.md). Fixed: a 5
+  second timeout, stale-if-error, and `GET /healthz`. Re-tested after the fix.
+- [02 — two carts contend for the last unit](notes/incidents/02-sold-out-race.md). Reproduced on one
+  staged variant. **Not fixed**: the store does not track inventory, so this is a decision for whoever
+  runs the store rather than a code change.
+- [03 — a failing webhook](notes/incidents/03-webhook-failure.md). The project has no webhook
+  receiver, so a vitals-store outage was induced instead. **Not fixed.**
+- [Load test](notes/load-test.md). Up to 100 concurrent connections against a throwaway preview.
+  Production cannot be load-tested on this platform, and the document explains why.
+
+The honest summary: before the fix above, nothing would have told anyone that any of these had
+happened. Detection today is still manual, because nothing watches `/healthz` yet.
 
 ## License
 
