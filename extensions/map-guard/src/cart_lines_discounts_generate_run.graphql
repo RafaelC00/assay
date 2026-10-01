@@ -1,0 +1,31 @@
+query RunInput {
+  cart {
+    lines {
+      id
+      cost {
+        amountPerQuantity {
+          amount
+        }
+      }
+      merchandise {
+        __typename
+        ... on ProductVariant {
+          mapProtected: metafield(namespace: "custom", key: "map_protected") {
+            value
+          }
+          product {
+            mapTerms: metafield(namespace: "custom", key: "map_terms") {
+              jsonValue
+            }
+          }
+        }
+      }
+    }
+  }
+  discount {
+    discountClasses
+    metafield(namespace: "$app:map-guard", key: "config") {
+      jsonValue
+    }
+  }
+}
