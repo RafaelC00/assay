@@ -1,0 +1,525 @@
+{
+  "currency": "USD",
+  "sale": {
+    "name": "Autumn Sale",
+    "percent_off": 25
+  },
+  "vendors": [
+    {
+      "handle": "kestrel-labs",
+      "name": "Kestrel Labs",
+      "positioning": "Clinical formulations, every lot assayed by an independent laboratory.",
+      "map_policy": "none"
+    },
+    {
+      "handle": "elia",
+      "name": "Elia",
+      "positioning": "Women's health and prenatal nutrition.",
+      "map_policy": "none"
+    },
+    {
+      "handle": "meridian-botanicals",
+      "name": "Meridian Botanicals",
+      "positioning": "Herbal extracts and adaptogens, standardised and tested.",
+      "map_policy": "partial"
+    },
+    {
+      "handle": "vireo",
+      "name": "Vireo",
+      "positioning": "Plant-based nutrition, free of animal-derived ingredients.",
+      "map_policy": "floor",
+      "map_floor_pct": 15
+    },
+    {
+      "handle": "northbound",
+      "name": "Northbound",
+      "positioning": "Sport nutrition: creatine, protein and electrolytes.",
+      "map_policy": "open"
+    }
+  ],
+  "products": [
+    {
+      "handle": "kestrel-omega-3-triglyceride",
+      "title": "Omega-3 Triglyceride Fish Oil",
+      "vendor": "kestrel-labs",
+      "category": "Omega-3",
+      "list_price_cents": 3400,
+      "variants": [
+        {
+          "sku": "KESTRELOMEGA3TRIGLYCERIDE-60",
+          "title": "60 softgels",
+          "price_cents": 3400
+        },
+        {
+          "sku": "KESTRELOMEGA3TRIGLYCERIDE-120",
+          "title": "120 softgels",
+          "price_cents": 6200
+        }
+      ],
+      "description": "Fish oil in natural triglyceride form from wild-caught small fish. 1,000 mg combined EPA and DHA per two softgels. Molecularly distilled; no added flavouring.",
+      "assay_panel": [
+        "Potency against label claim",
+        "Oxidation markers (peroxide, anisidine)",
+        "PCBs and dioxins",
+        "Heavy metals (lead, cadmium, arsenic, mercury)"
+      ],
+      "map_policy": "none"
+    },
+    {
+      "handle": "kestrel-magnesium-glycinate",
+      "title": "Magnesium Glycinate",
+      "vendor": "kestrel-labs",
+      "category": "Magnesium",
+      "list_price_cents": 2800,
+      "variants": [
+        {
+          "sku": "KESTRELMAGNESIUMGLYCINATE-90",
+          "title": "90 capsules",
+          "price_cents": 2800
+        },
+        {
+          "sku": "KESTRELMAGNESIUMGLYCINATE-180",
+          "title": "180 capsules",
+          "price_cents": 4900
+        }
+      ],
+      "description": "Magnesium bisglycinate chelate. 200 mg elemental magnesium per two vegetable capsules. No stearates, fillers or colourants.",
+      "assay_panel": [
+        "Potency against label claim",
+        "Heavy metals (lead, cadmium, arsenic, mercury)",
+        "Microbial limits"
+      ],
+      "map_policy": "none"
+    },
+    {
+      "handle": "kestrel-magnesium-threonate",
+      "title": "Magnesium L-Threonate",
+      "vendor": "kestrel-labs",
+      "category": "Magnesium",
+      "list_price_cents": 4600,
+      "variants": [
+        {
+          "sku": "KESTRELMAGNESIUMTHREONATE-90",
+          "title": "90 capsules",
+          "price_cents": 4600
+        }
+      ],
+      "description": "Magnesium L-threonate. 144 mg elemental magnesium per three vegetable capsules. Manufactured in a facility that does not process major allergens.",
+      "assay_panel": [
+        "Potency against label claim",
+        "Heavy metals (lead, cadmium, arsenic, mercury)",
+        "Microbial limits"
+      ],
+      "map_policy": "none"
+    },
+    {
+      "handle": "kestrel-zinc-picolinate",
+      "title": "Zinc Picolinate",
+      "vendor": "kestrel-labs",
+      "category": "Zinc",
+      "list_price_cents": 1900,
+      "variants": [
+        {
+          "sku": "KESTRELZINCPICOLINATE-120",
+          "title": "120 capsules",
+          "price_cents": 1900
+        }
+      ],
+      "description": "Zinc as picolinate, 25 mg per capsule. Vegetable capsule, no excipients beyond the capsule shell.",
+      "assay_panel": [
+        "Potency against label claim",
+        "Heavy metals (lead, cadmium, arsenic, mercury)",
+        "Microbial limits"
+      ],
+      "map_policy": "none"
+    },
+    {
+      "handle": "elia-prenatal-multi",
+      "title": "Prenatal Multivitamin",
+      "vendor": "elia",
+      "category": "Multivitamin",
+      "list_price_cents": 3800,
+      "variants": [
+        {
+          "sku": "ELIAPRENATALMULTI-120",
+          "title": "120 capsules (30 days)",
+          "price_cents": 3800
+        },
+        {
+          "sku": "ELIAPRENATALMULTI-360",
+          "title": "360 capsules (90 days)",
+          "price_cents": 10200
+        }
+      ],
+      "description": "Multivitamin and mineral formula with methylfolate (800 mcg DFE), iron as bisglycinate and choline. Four capsules daily. Free of artificial colours.",
+      "assay_panel": [
+        "Potency against label claim",
+        "Heavy metals (lead, cadmium, arsenic, mercury)",
+        "Microbial limits"
+      ],
+      "map_policy": "none"
+    },
+    {
+      "handle": "elia-prenatal-dha",
+      "title": "Prenatal DHA",
+      "vendor": "elia",
+      "category": "Omega-3",
+      "list_price_cents": 2900,
+      "variants": [
+        {
+          "sku": "ELIAPRENATALDHA-60",
+          "title": "60 softgels",
+          "price_cents": 2900
+        }
+      ],
+      "description": "Algal-source DHA, 300 mg per softgel, in a vegetarian softgel. Third-party tested for oxidation and contaminants.",
+      "assay_panel": [
+        "Potency against label claim",
+        "Oxidation markers (peroxide, anisidine)",
+        "Heavy metals (lead, cadmium, arsenic, mercury)"
+      ],
+      "map_policy": "none"
+    },
+    {
+      "handle": "elia-b-complex-methylated",
+      "title": "B-Complex, Methylated",
+      "vendor": "elia",
+      "category": "B vitamins",
+      "list_price_cents": 2400,
+      "variants": [
+        {
+          "sku": "ELIABCOMPLEXMETHYLATED-60",
+          "title": "60 capsules",
+          "price_cents": 2400
+        }
+      ],
+      "description": "Eight B vitamins in their coenzyme or methylated forms, including methylcobalamin and methylfolate. One capsule daily.",
+      "assay_panel": [
+        "Potency against label claim",
+        "Heavy metals (lead, cadmium, arsenic, mercury)",
+        "Microbial limits"
+      ],
+      "map_policy": "none"
+    },
+    {
+      "handle": "meridian-ashwagandha-root",
+      "title": "Ashwagandha Root Extract",
+      "vendor": "meridian-botanicals",
+      "category": "Adaptogens",
+      "list_price_cents": 2600,
+      "variants": [
+        {
+          "sku": "MERIDIANASHWAGANDHAROOT-60",
+          "title": "60 capsules",
+          "price_cents": 2600,
+          "map_protected": true
+        },
+        {
+          "sku": "MERIDIANASHWAGANDHAROOT-120",
+          "title": "120 capsules",
+          "price_cents": 4600,
+          "map_protected": false
+        }
+      ],
+      "description": "Root extract standardised to 5% withanolides, 300 mg per capsule. Sourced from a single farm cooperative in India with documented traceability.",
+      "assay_panel": [
+        "Potency against label claim",
+        "Heavy metals (lead, cadmium, arsenic, mercury)",
+        "Pesticide residues",
+        "Microbial limits"
+      ],
+      "map_policy": "partial"
+    },
+    {
+      "handle": "meridian-rhodiola-rosea",
+      "title": "Rhodiola Rosea Extract",
+      "vendor": "meridian-botanicals",
+      "category": "Adaptogens",
+      "list_price_cents": 2900,
+      "variants": [
+        {
+          "sku": "MERIDIANRHODIOLAROSEA-60",
+          "title": "60 capsules",
+          "price_cents": 2900,
+          "map_protected": true
+        }
+      ],
+      "description": "Root extract standardised to 3% rosavins and 1% salidroside, 200 mg per capsule. Wild-harvested, identity-verified by HPTLC.",
+      "assay_panel": [
+        "Potency against label claim",
+        "Heavy metals (lead, cadmium, arsenic, mercury)",
+        "Pesticide residues",
+        "Microbial limits"
+      ],
+      "map_policy": "partial"
+    },
+    {
+      "handle": "meridian-lions-mane",
+      "title": "Lion's Mane Fruiting Body",
+      "vendor": "meridian-botanicals",
+      "category": "Mushrooms",
+      "list_price_cents": 3200,
+      "variants": [
+        {
+          "sku": "MERIDIANLIONSMANE-60",
+          "title": "60 capsules",
+          "price_cents": 3200,
+          "map_protected": true
+        },
+        {
+          "sku": "MERIDIANLIONSMANE-120",
+          "title": "120 capsules",
+          "price_cents": 5800,
+          "map_protected": false
+        }
+      ],
+      "description": "Fruiting-body extract, 500 mg per capsule, grown on organic oat substrate. Tested for beta-glucan content; mycelium-on-grain is not used.",
+      "assay_panel": [
+        "Potency against label claim",
+        "Heavy metals (lead, cadmium, arsenic, mercury)",
+        "Microbial limits"
+      ],
+      "map_policy": "partial"
+    },
+    {
+      "handle": "meridian-turmeric-curcumin",
+      "title": "Turmeric Curcumin Complex",
+      "vendor": "meridian-botanicals",
+      "category": "Herbal extracts",
+      "list_price_cents": 2700,
+      "variants": [
+        {
+          "sku": "MERIDIANTURMERICCURCUMIN-90",
+          "title": "90 capsules",
+          "price_cents": 2700,
+          "map_protected": false
+        }
+      ],
+      "description": "95% curcuminoid extract, 500 mg per capsule, with black pepper extract (5 mg piperine). Vegetable capsule.",
+      "assay_panel": [
+        "Potency against label claim",
+        "Heavy metals (lead, cadmium, arsenic, mercury)",
+        "Pesticide residues",
+        "Microbial limits"
+      ],
+      "map_policy": "partial"
+    },
+    {
+      "handle": "vireo-plant-protein",
+      "title": "Plant Protein, Vanilla",
+      "vendor": "vireo",
+      "category": "Protein",
+      "list_price_cents": 3900,
+      "variants": [
+        {
+          "sku": "VIREOPLANTPROTEIN-900",
+          "title": "900 g (28 servings)",
+          "price_cents": 3900
+        },
+        {
+          "sku": "VIREOPLANTPROTEIN-1800",
+          "title": "1.8 kg (56 servings)",
+          "price_cents": 7200
+        }
+      ],
+      "description": "Pea and brown rice protein blend, 24 g protein per 32 g serving. Sweetened with monk fruit. No animal-derived ingredients.",
+      "assay_panel": [
+        "Potency against label claim",
+        "Heavy metals (lead, cadmium, arsenic, mercury)",
+        "Microbial limits",
+        "Amino acid profile"
+      ],
+      "map_policy": "floor",
+      "map_floor_pct": 15
+    },
+    {
+      "handle": "vireo-algae-omega-3",
+      "title": "Algae Omega-3",
+      "vendor": "vireo",
+      "category": "Omega-3",
+      "list_price_cents": 3200,
+      "variants": [
+        {
+          "sku": "VIREOALGAEOMEGA3-60",
+          "title": "60 softgels",
+          "price_cents": 3200
+        }
+      ],
+      "description": "Algal oil providing 500 mg combined EPA and DHA per softgel. Shell made from modified starch; no fish or gelatin.",
+      "assay_panel": [
+        "Potency against label claim",
+        "Oxidation markers (peroxide, anisidine)",
+        "Heavy metals (lead, cadmium, arsenic, mercury)"
+      ],
+      "map_policy": "floor",
+      "map_floor_pct": 15
+    },
+    {
+      "handle": "vireo-vitamin-c-acerola",
+      "title": "Vitamin C from Acerola",
+      "vendor": "vireo",
+      "category": "Vitamin C",
+      "list_price_cents": 2200,
+      "variants": [
+        {
+          "sku": "VIREOVITAMINCACEROLA-90",
+          "title": "90 capsules",
+          "price_cents": 2200
+        }
+      ],
+      "description": "Acerola cherry extract providing 250 mg vitamin C per capsule, with citrus bioflavonoids. Vegetable capsule.",
+      "assay_panel": [
+        "Potency against label claim",
+        "Heavy metals (lead, cadmium, arsenic, mercury)",
+        "Microbial limits"
+      ],
+      "map_policy": "floor",
+      "map_floor_pct": 15
+    },
+    {
+      "handle": "vireo-d3-k2",
+      "title": "Vitamin D3 + K2",
+      "vendor": "vireo",
+      "category": "Vitamin D",
+      "list_price_cents": 2400,
+      "variants": [
+        {
+          "sku": "VIREOD3K2-90",
+          "title": "90 capsules",
+          "price_cents": 2400
+        },
+        {
+          "sku": "VIREOD3K2-180",
+          "title": "180 capsules",
+          "price_cents": 4200
+        }
+      ],
+      "description": "Vitamin D3 from lichen, 2,000 IU, with 100 mcg vitamin K2 as MK-7 (menaquinone-7). One vegetable capsule daily.",
+      "assay_panel": [
+        "Potency against label claim",
+        "Heavy metals (lead, cadmium, arsenic, mercury)",
+        "Microbial limits"
+      ],
+      "map_policy": "floor",
+      "map_floor_pct": 15
+    },
+    {
+      "handle": "northbound-creatine-monohydrate",
+      "title": "Creatine Monohydrate",
+      "vendor": "northbound",
+      "category": "Creatine",
+      "list_price_cents": 2800,
+      "variants": [
+        {
+          "sku": "NORTHBOUNDCREATINEMONOHYDRATE-300",
+          "title": "300 g (60 servings)",
+          "price_cents": 2800
+        },
+        {
+          "sku": "NORTHBOUNDCREATINEMONOHYDRATE-1000",
+          "title": "1 kg (200 servings)",
+          "price_cents": 6400
+        }
+      ],
+      "description": "Micronised creatine monohydrate, 5 g per serving, single ingredient. Unflavoured.",
+      "assay_panel": [
+        "Potency against label claim",
+        "Heavy metals (lead, cadmium, arsenic, mercury)",
+        "Microbial limits",
+        "Banned-substance screen"
+      ],
+      "map_policy": "open"
+    },
+    {
+      "handle": "northbound-whey-isolate",
+      "title": "Whey Protein Isolate, Unflavoured",
+      "vendor": "northbound",
+      "category": "Protein",
+      "list_price_cents": 4800,
+      "variants": [
+        {
+          "sku": "NORTHBOUNDWHEYISOLATE-900",
+          "title": "900 g (30 servings)",
+          "price_cents": 4800
+        },
+        {
+          "sku": "NORTHBOUNDWHEYISOLATE-2000",
+          "title": "2 kg (66 servings)",
+          "price_cents": 9800
+        }
+      ],
+      "description": "Cold-processed whey protein isolate, 27 g protein per 30 g serving. Single ingredient; contains milk.",
+      "assay_panel": [
+        "Potency against label claim",
+        "Heavy metals (lead, cadmium, arsenic, mercury)",
+        "Microbial limits",
+        "Banned-substance screen",
+        "Amino acid profile"
+      ],
+      "map_policy": "open"
+    },
+    {
+      "handle": "northbound-electrolyte-mix",
+      "title": "Electrolyte Mix, Citrus",
+      "vendor": "northbound",
+      "category": "Electrolytes",
+      "list_price_cents": 3000,
+      "variants": [
+        {
+          "sku": "NORTHBOUNDELECTROLYTEMIX-30",
+          "title": "30 sticks",
+          "price_cents": 3000
+        }
+      ],
+      "description": "Sodium 500 mg, potassium 200 mg, magnesium 60 mg and chloride per stick. Sweetened with stevia leaf extract. 30 sticks.",
+      "assay_panel": [
+        "Potency against label claim",
+        "Heavy metals (lead, cadmium, arsenic, mercury)",
+        "Banned-substance screen"
+      ],
+      "map_policy": "open"
+    },
+    {
+      "handle": "northbound-collagen-peptides",
+      "title": "Collagen Peptides",
+      "vendor": "northbound",
+      "category": "Collagen",
+      "list_price_cents": 3600,
+      "variants": [
+        {
+          "sku": "NORTHBOUNDCOLLAGENPEPTIDES-450",
+          "title": "450 g (45 servings)",
+          "price_cents": 3600
+        }
+      ],
+      "description": "Hydrolysed bovine collagen peptides (types I and III), 10 g per serving. Pasture-raised source. Unflavoured, dissolves in hot or cold liquid.",
+      "assay_panel": [
+        "Potency against label claim",
+        "Heavy metals (lead, cadmium, arsenic, mercury)",
+        "Microbial limits"
+      ],
+      "map_policy": "open"
+    },
+    {
+      "handle": "northbound-magnesium-citrate",
+      "title": "Magnesium Citrate Powder",
+      "vendor": "northbound",
+      "category": "Magnesium",
+      "list_price_cents": 2000,
+      "variants": [
+        {
+          "sku": "NORTHBOUNDMAGNESIUMCITRATE-200",
+          "title": "200 g (133 servings)",
+          "price_cents": 2000
+        }
+      ],
+      "description": "Magnesium citrate powder, 200 mg elemental magnesium per 1.5 g scoop. Unflavoured.",
+      "assay_panel": [
+        "Potency against label claim",
+        "Heavy metals (lead, cadmium, arsenic, mercury)",
+        "Microbial limits"
+      ],
+      "map_policy": "open"
+    }
+  ]
+}

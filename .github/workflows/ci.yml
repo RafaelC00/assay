@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Types
+        run: npm run typecheck
+      - name: Tests
+        run: npx vitest run
+      - name: Build
+        run: npm run build
+      # The performance budget runs against the built output, so it has to come
+      # after the build. It fails the job rather than warning: a budget that
+      # only warns is a number nobody reads.
+      - name: Performance budget
+        run: npm run perf:budget

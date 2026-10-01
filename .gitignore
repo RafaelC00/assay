@@ -1,0 +1,15 @@
+node_modules/
+.env
+.env.*
+!.env.example
+dist/
+build/
+.react-router/
+.shopify/
+.cache/
+coverage/
+*.log
+.DS_Store
+.agents/
+
+.vercel

@@ -1,0 +1,8 @@
+{
+  "comment": "Transfer budgets for the built client bundle, in KiB. Measured at the phase 2 baseline, where Lighthouse mobile scored 100 with LCP 1.3s on a page carrying no images, no webfonts and no third-party scripts. Those are all still to come, so the point of this file is that they cannot arrive quietly.",
+  "budgets": {
+    "totalClientJsKib": 420,
+    "totalClientCssKib": 20,
+    "largestSingleAssetKib": 260
+  }
+}
