@@ -88,11 +88,36 @@ Input query cost is 12 of the 30 allowed (three metafield reads at 3 each, plus 
 
 ### Deployment status
 
-Deployed and installed, but not yet firing. The function ships in the app `assay-map-guard` (version `assay-map-guard-4`), is installed on the store and appears in the admin as the discount type "MAP guard". A discount function runs only when a discount instance of that type exists, and none exists yet, so carts currently get no discount from it.
+Live. The function ships in the app `assay-map-guard`, is installed on the
+store, and an automatic discount of its type is active: "Autumn Sale (MAP
+guarded)", 25% off, product class.
 
-The sale is configured by a Discount Function Settings extension, `extensions/map-guard-settings` (target `admin.discount-details.function-settings.render`). It writes the sale label and percentage to the `$app:map-guard` / `config` metafield the function reads. Creating the discount from Discounts, Create discount, MAP guard, uses that form.
+The sale is configured by a Discount Function Settings extension,
+`extensions/map-guard-settings` (target
+`admin.discount-details.function-settings.render`). It writes the sale label and
+percentage to the `$app:map-guard` / `config` metafield that the function reads,
+so changing the sale does not mean changing code.
 
-The remaining step is a merchant approval. The app now declares `write_discounts`, which lets it create the discount itself with `discountAutomaticAppCreate`, but the store has to accept the permission update before the scope is granted; it cannot be granted from the CLI. Once it is accepted (or the discount is created by hand in the admin), run `node scripts/verify-checkout.mjs`. It builds one real cart per MAP case through the Storefront API and compares each line's discount with what the rule allows, and it says plainly when nothing was discounted at all.
+`node scripts/verify-checkout.mjs` builds one real cart per MAP case through the
+Storefront API and compares each line against what the rule allows. It exits
+non-zero on any mismatch. Observed against the live store under a 25% sale:
+
+| Case | Vendor | List | Cart total | Discount |
+|---|---|---|---|---|
+| `open` | Northbound | 28.00 | 21.00 | 7.00, the full 25% |
+| `none` | Kestrel | 34.00 | 34.00 | none, refused |
+| `floor` at 15% | Vireo | 39.00 | 33.15 | 5.85, clamped from 9.75 |
+| `partial`, protected | Meridian | 26.00 | 26.00 | none |
+| `partial`, unprotected | Meridian | 46.00 | 34.50 | 11.50 |
+
+The Vireo and Meridian rows are the ones worth reading. Vireo sits under a 25%
+sale and takes 15%, because Shopify's discount engine applied the vendor's floor
+rather than the advertised rate. The same Meridian product discounts or does not
+depending on one per-variant flag.
+
+Note that `none` and `protected` are only meaningful alongside a case that does
+discount. Before the discount instance existed every cart came back at list
+price, and those two rows "passed" while proving nothing.
 
 ## Running it
 
