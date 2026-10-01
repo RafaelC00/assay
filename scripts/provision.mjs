@@ -13,6 +13,12 @@
  *   - Per-variant MAP protection is a variant metafield `custom.map_protected`.
  *   - Products point at their vendor through the product metafield
  *     `custom.vendor_profile` (metaobject_reference).
+ *   - The same terms are mirrored onto each product as `custom.map_terms` (json,
+ *     {"policy","floor_pct"}). The checkout Function cannot follow a metaobject
+ *     reference (its input schema has no `reference` on Metafield, and the
+ *     `metaobject` root field only serves app-owned `$app` metaobjects), so it
+ *     reads this mirror. The mirror is derived from the catalog on every run and
+ *     corrected when it differs.
  *
  * Every definition is created with `access.storefront = PUBLIC_READ`. A
  * definition left at its default looks identical in the admin and is invisible
@@ -328,6 +334,67 @@ async function ensureProducts(vendorIds, publications) {
   }
 }
 
+// ---------------------------------------------------------------- MAP terms mirror
+/** The value the checkout Function reads from `custom.map_terms`. */
+function mapTermsFor(p) {
+  const terms = {policy: p.map_policy};
+  if (p.map_policy === 'floor') terms.floor_pct = p.map_floor_pct;
+  return terms;
+}
+
+async function syncMapTerms() {
+  const current = new Map();
+  let after = null;
+  for (;;) {
+    const data = await admin(
+      `query($after: String) {
+        products(first: 100, after: $after) {
+          pageInfo { hasNextPage endCursor }
+          nodes { id handle mapTerms: metafield(namespace: "custom", key: "map_terms") { value } }
+        }
+      }`,
+      {after},
+    );
+    for (const n of data.products.nodes) current.set(n.handle, n);
+    if (!data.products.pageInfo.hasNextPage) break;
+    after = data.products.pageInfo.endCursor;
+  }
+  const stale = [];
+  for (const p of catalog.products) {
+    const node = current.get(p.handle);
+    if (!node) continue;
+    const want = JSON.stringify(mapTermsFor(p));
+    let have = null;
+    try {
+      have = node.mapTerms ? JSON.stringify(JSON.parse(node.mapTerms.value)) : null;
+    } catch {
+      have = null;
+    }
+    if (have === want) {
+      report('map terms mirror', p.handle, 'existing');
+    } else {
+      stale.push({
+        ownerId: node.id,
+        namespace: 'custom',
+        key: 'map_terms',
+        type: 'json',
+        value: want,
+      });
+      report('map terms mirror', p.handle, 'created', have ? 'corrected' : '');
+    }
+  }
+  // metafieldsSet accepts at most 25 metafields per call.
+  for (let i = 0; i < stale.length; i += 25) {
+    const r = await admin(
+      `mutation($m: [MetafieldsSetInput!]!) {
+        metafieldsSet(metafields: $m) { userErrors { field message } }
+      }`,
+      {m: stale.slice(i, i + 25)},
+    );
+    check('metafieldsSet map_terms', r.metafieldsSet.userErrors);
+  }
+}
+
 // ---------------------------------------------------------------- main
 const definitionId = await ensureVendorDefinition();
 await ensureMetafieldDefinition({
@@ -352,7 +419,15 @@ await ensureMetafieldDefinition({
   name: 'MAP protected',
   type: 'boolean',
 });
+await ensureMetafieldDefinition({
+  ownerType: 'PRODUCT',
+  namespace: 'custom',
+  key: 'map_terms',
+  name: 'MAP terms (mirror for checkout)',
+  type: 'json',
+});
 const vendorIds = await ensureVendors();
 const publications = await findPublications();
 await ensureProducts(vendorIds, publications);
+await syncMapTerms();
 console.log(`\nDone: ${tally.created} created, ${tally.existing} existing.`);

@@ -4,7 +4,7 @@ A storefront for a multi-brand premium supplement retailer. ASSAY stocks only pr
 
 ASSAY and all brands and products are fictional.
 
-The engineering focus is MAP pricing, described below. This repository is phase 1: the storefront skeleton, the catalog model and the pricing rule engine. It runs against local catalog data when no Shopify credentials are set, and against a Shopify store through the Storefront API when they are.
+The engineering focus is MAP pricing, described below. This repository covers the storefront skeleton, the catalog model, the pricing rule engine and a checkout Function that enforces the same rule. It runs against local catalog data when no Shopify credentials are set, and against a Shopify store through the Storefront API when they are.
 
 ## The MAP problem
 
@@ -39,9 +39,10 @@ app/lib/catalog/shopify.ts   Storefront API implementation
 scripts/provision.mjs        Idempotent Shopify provisioning
 app/lib/pricing/map.ts       MAP rule engine (pure)
 app/lib/pricing/sale.ts      Prices a variant under the active sale; per-vendor summary
+extensions/map-guard/        Checkout Function enforcing the same rule (see Checkout enforcement)
 app/routes/                  Home, collection, product
 server.ts                    Oxygen worker entry
-tests/                       Vitest
+tests/                       Vitest (tests/map-parity.test.ts keeps storefront and checkout in step)
 migrations/                  SQL migrations for the metrics store (see Status)
 ```
 
@@ -54,6 +55,39 @@ migrations/                  SQL migrations for the metrics store (see Status)
 **Stack.** Shopify Hydrogen tooling on React Router 7, TypeScript, Vite, Vitest. Server-side rendered on an Oxygen-compatible worker runtime.
 
 **Copy.** Product descriptions state form, dosage, sourcing and testing only. They make no claims about treating or preventing any condition. A test in `tests/catalog.test.ts` checks the catalog copy against a list of claim terms.
+
+## Checkout enforcement
+
+A storefront price is only a promise. Checkout is where it is kept, so the sale is also enforced by a Shopify Function, `extensions/map-guard`, written in TypeScript against the Discount Function API (target `cart.lines.discounts.generate.run`, API version 2026-07). For each cart line it looks up the vendor's MAP terms and the variant's flag, applies the same rule as the storefront, and returns a `productDiscountsAdd` operation with one fixed amount per item, in cents-exact terms, so checkout lands on the same price the page showed. Lines it cannot read terms for get no discount.
+
+### The parity test is the deliverable
+
+The same rule now exists twice: `applyDiscount()` in `app/lib/pricing/map.ts` for the storefront and `mapPriceCents()` in `extensions/map-guard/src/map-rule.ts` for checkout. A Function is bundled on its own and cannot import the storefront code, so the duplication is deliberate. If the two drift, the page promises a price checkout will not honour, which is worse than having no discount. The real work of this phase is therefore `tests/map-parity.test.ts`, which asserts they agree rather than asserting prices:
+
+- every policy (`none`, `open`, `floor` at nine floors from 0 to 100, `partial` protected, unprotected and flag missing) against 15 list prices and 16 requested discounts, including 0%, 100%, the floor itself, one hundredth either side of it, odd cents and a zero price;
+- named boundary cases: floor price rounding, half-cent rounding, a free item, a floor of 0 and of 100;
+- the real catalog under the real sale: a cart holding every variant is run through the Function entry point and each line's discount is compared with `priceVariant()`, and no excluded variant may receive a discount;
+- fail-closed cases that exist only on the checkout side: unknown or missing policy, a floor policy with no readable floor, a non-numeric floor, a non-boolean flag. The storefront throws `RangeError` on invalid input and the Function must not throw at checkout, so the agreed behaviour is "no discount";
+- the Function entry point: wrong discount class, missing or unusable configuration, missing terms, and lines that are not product variants.
+
+### What the docs changed
+
+The first design had the Function read `custom.vendor_profile` and follow it to the vendor metaobject. That is not possible. The Function input schema has no `reference` field on `Metafield` (only `value`, `jsonValue`, `type`, `namespace`, `key`), and the one way to reach a metaobject, the `metaobject` root field, serves only app-owned metaobjects under the reserved `$app` prefix. `assay_vendor` is a store-owned metaobject, so it is out of reach.
+
+The simplest correct alternative is a mirror. `npm run shopify:provision` now also writes `custom.map_terms` on every product (JSON, `{"policy": "floor", "floor_pct": 15}`), derived from the same catalog data as the vendor entry and corrected on each run if it differs. The storefront still reads the metaobject; the Function reads the mirror. The cost is a second copy of the vendor's terms that must stay in step, which is why provisioning rewrites it rather than trusting it, and why a missing or unreadable mirror means no discount. Editing a vendor in the admin without re-running provisioning leaves the mirror stale; that is the main operational gap of this design.
+
+Input query cost is 12 of the 30 allowed (three metafield reads at 3 each, plus leaf fields). The query validates against the 2026-07 schema.
+
+### Function inputs
+
+- `custom.map_terms` on the product (the mirror above).
+- `custom.map_protected` on the variant. Only an explicit `false` unprotects a SKU of a `partial` vendor; absent or unreadable means protected.
+- A `$app:map-guard` / `config` metafield on the discount itself, JSON `{"percentOff": 25, "name": "Autumn Sale"}`. The sale is site configuration in `data/catalog.json` for the storefront and has to be set here too; the Function does nothing without it.
+- The line's list price comes from the cart (`cost.amountPerQuantity`), assumed to be in the store currency (USD) and to carry no compare-at price.
+
+### Deployment status
+
+Not deployed. The function is built, unit tested and documented, but it is not live. Functions ship as part of a Shopify app via `shopify app deploy`, and the store only has a legacy custom app, which cannot carry Functions. Creating an app with `shopify app init` stops at the prompt "Which organization is this work for?", which needs an interactive CLI login to a Dev Dashboard organization. To deploy: create the app, link it (`shopify.app.toml` with its `client_id`, `extensions/map-guard` as its extension), run `shopify app deploy`, install the app on the store, then create an automatic app discount for the function with the `$app:map-guard` configuration and the `PRODUCT` discount class. None of that has been run. Also unverified: the Wasm build (`shopify app function build`) and the extension's `export` name, which follow the current JavaScript template but have not been compiled here.
 
 ## Running it
 
