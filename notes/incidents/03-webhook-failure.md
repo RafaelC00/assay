@@ -1,6 +1,6 @@
 # Incident 03: a failing webhook
 
-Status: DRAFT, not reviewed. Not linked from the README or the site.
+Status: findings as originally observed. **Not fixed**: see "Fix and prevention".
 Date: 2026-10-01. Times are UTC.
 
 ## Summary
@@ -47,9 +47,9 @@ What this showed:
 
 Not tested: production's `/status` is served with `s-maxage=60` and `stale-while-revalidate=300`, so a database outage would reach the live page up to about 6 minutes late. That follows from the header in the code and was not observed.
 
-## Fix and prevention
+## Fix and prevention (not implemented; remains open)
 
-There is no fix for a webhook that does not exist. If one is built, the checklist this exercise implies:
+Nothing in PR #7 or any other change addresses this incident, and it was not re-run. There is no fix for a webhook that does not exist, and building a receiver only to have something to test would add a public, authenticated endpoint and its upkeep for no current need: the storefront reads Shopify on demand and nothing it does depends on being told about changes. The gap becomes real the day a feature needs webhooks, and the absence of detection described above would apply to it from the first delivery. If one is built, the checklist this exercise implies:
 
 - Verify the HMAC over the raw body, before parsing, with a constant-time comparison. Return 401 on mismatch and log it as a counted event.
 - Respond quickly, do the work asynchronously, and make the handler idempotent on the webhook id, since delivery is at least once.

@@ -17,7 +17,29 @@ export interface ProductQuery {
   vendors?: string[];
 }
 
+/**
+ * healthy: serving a snapshot refreshed within its lifetime.
+ * stale:   the last refresh failed, serving an older snapshot (age in
+ *          snapshotAgeMs). Pages work but the data is not current.
+ * broken:  cannot serve at all.
+ */
+export type CatalogState = 'healthy' | 'stale' | 'broken';
+
+export interface CatalogHealth {
+  state: CatalogState;
+  source: 'shopify' | 'local';
+  /** Age of the snapshot being served; null when there is none. */
+  snapshotAgeMs: number | null;
+  lastRefreshAt: string | null;
+  lastError: string | null;
+  lastErrorAt: string | null;
+  /** Beyond this age a failed refresh stops being served as stale. */
+  maxStaleMs: number | null;
+}
+
 export interface CatalogSource {
+  /** Performs a real catalog read and reports what happened. */
+  getHealth(): Promise<CatalogHealth>;
   getCurrency(): Promise<string>;
   getSale(): Promise<Sale>;
   listVendors(): Promise<Vendor[]>;

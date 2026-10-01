@@ -5,5 +5,6 @@ export default [
   route('collections/all', 'routes/collection.tsx'),
   route('products/:handle', 'routes/product.tsx'),
   route('status', 'routes/status.tsx'),
+  route('healthz', 'routes/healthz.ts'),
   route('api/vitals', 'routes/api.vitals.ts'),
 ] satisfies RouteConfig;
