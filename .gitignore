@@ -13,3 +13,6 @@ coverage/
 .agents/
 
 .vercel
+extensions/**/node_modules/
+extensions/**/dist/
+.shopify/

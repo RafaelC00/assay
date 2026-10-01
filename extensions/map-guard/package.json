@@ -1,0 +1,33 @@
+{
+  "name": "map-guard",
+  "version": "1.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "typegen": "shopify app function typegen",
+    "build": "shopify app function build",
+    "preview": "shopify app function preview"
+  },
+  "codegen": {
+    "overwrite": true,
+    "schema": "schema.graphql",
+    "documents": ["src/**/*.graphql"],
+    "generates": {
+      "src/generated/api.ts": {
+        "plugins": ["typescript", "typescript-operations"],
+        "config": {
+          "scalars": { "Decimal": "string", "ID": "string", "Void": "void" }
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@shopify/shopify_function": "~2.0.0"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "^6.0.0",
+    "@graphql-codegen/typescript": "^5.0.0",
+    "@graphql-codegen/typescript-operations": "^5.0.0"
+  }
+}

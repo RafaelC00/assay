@@ -1,0 +1,19 @@
+# Shopify app that carries the MAP guard discount function.
+# The app exists only to host the function; it has no UI and no embedded surface.
+client_id = "16ccdf8e86007726f217056d123f416f"
+name = "assay-map-guard"
+application_url = "https://assay-gamma-ten.vercel.app"
+embedded = false
+
+[build]
+
+[webhooks]
+api_version = "2026-07"
+
+[access_scopes]
+# The function reads product and variant metafields through its input query.
+# It needs no write access: it returns discount operations, it does not mutate.
+scopes = "read_products"
+
+[auth]
+redirect_urls = [ "https://assay-gamma-ten.vercel.app/api/auth" ]
