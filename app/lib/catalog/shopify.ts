@@ -20,7 +20,7 @@
  * This module is pure apart from `fetch`, which is injectable so tests can
  * run with fixture payloads and no network.
  */
-import type {MapPolicy, Product, Sale, Variant, Vendor} from './types';
+import type {MapPolicy, Product, ProductImage, Sale, Variant, Vendor} from './types';
 import type {CatalogHealth, CatalogSource, ProductQuery} from './source';
 
 // ---------------------------------------------------------------- response shapes
@@ -38,6 +38,9 @@ export interface ProductNode {
   description: string;
   vendorProfile: {reference: MetaobjectNode | null} | null;
   assayPanel: {value: string} | null;
+  images?: {
+    nodes: Array<{url: string; altText: string | null; width: number | null; height: number | null}>;
+  };
   variants: {
     nodes: Array<{
       sku: string | null;
@@ -85,6 +88,7 @@ const PRODUCTS_QUERY = `#graphql
           reference { ... on Metaobject { ${VENDOR_FIELDS} } }
         }
         assayPanel: metafield(namespace: "custom", key: "assay_panel") { value }
+        images(first: 4) { nodes { url altText width height } }
         variants(first: 100) {
           nodes {
             sku
@@ -157,6 +161,21 @@ function parsePanel(raw: string | undefined): string[] {
   }
 }
 
+/**
+ * Images with a guaranteed alt text. An empty alt on a commerce page is a
+ * defect, so a missing one falls back to naming the product.
+ */
+export function mapImages(node: ProductNode): ProductImage[] {
+  return (node.images?.nodes ?? [])
+    .filter((i) => i.url && i.width && i.height)
+    .map((i) => ({
+      url: i.url,
+      alt: i.altText?.trim() || `${node.vendor} ${node.title}`,
+      width: i.width as number,
+      height: i.height as number,
+    }));
+}
+
 export function mapProduct(node: ProductNode): Product {
   const ref = node.vendorProfile?.reference ?? null;
   const vendor = ref
@@ -184,6 +203,7 @@ export function mapProduct(node: ProductNode): Product {
     variants,
     description: node.description,
     assay_panel: parsePanel(node.assayPanel?.value),
+    images: mapImages(node),
     map_policy: vendor.map_policy,
   };
   if (vendor.map_floor_pct !== undefined) product.map_floor_pct = vendor.map_floor_pct;

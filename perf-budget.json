@@ -1,8 +1,10 @@
 {
-  "comment": "Transfer budgets for the built client bundle, in KiB. Measured at the phase 2 baseline, where Lighthouse mobile scored 100 with LCP 1.3s on a page carrying no images, no webfonts and no third-party scripts. Those are all still to come, so the point of this file is that they cannot arrive quietly.",
+  "comment": "Transfer budgets for the built client bundle, in KiB. Measured at the phase 2 baseline, where Lighthouse mobile scored 100 with LCP 1.3s on a page carrying no images, no webfonts and no third-party scripts. Those are all still to come, so the point of this file is that they cannot arrive quietly. Phase 3 adds product photography and a webfont. The bundle numbers above were left alone, because neither lands in the bundle; two budgets were ADDED (not raised) so the two things that can now weigh the page down are covered: the largest hero AVIF, which is the page's LCP element, and the total webfont weight. Product photographs are served from Shopify's CDN and bounded by the responsive srcset in app/lib/images.ts.",
   "budgets": {
     "totalClientJsKib": 420,
     "totalClientCssKib": 20,
-    "largestSingleAssetKib": 260
+    "largestSingleAssetKib": 260,
+    "largestHeroImageKib": 40,
+    "webfontsTotalKib": 30
   }
 }

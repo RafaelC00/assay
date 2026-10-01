@@ -16,3 +16,9 @@ coverage/
 extensions/**/node_modules/
 extensions/**/dist/
 .shopify/
+
+# Image pipeline: every generation is kept locally, only the picked plates are tracked
+scripts/images/runs/
+scripts/images/out/
+scripts/images/_tmp.png
+__pycache__/
