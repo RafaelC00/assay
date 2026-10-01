@@ -15,3 +15,6 @@ description = "Applies the sale at checkout without breaching vendor MAP terms."
   [extensions.build]
   command = ""
   path = "dist/function.wasm"
+
+  [extensions.ui]
+  handle = "map-guard-settings"

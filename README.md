@@ -40,6 +40,7 @@ scripts/provision.mjs        Idempotent Shopify provisioning
 app/lib/pricing/map.ts       MAP rule engine (pure)
 app/lib/pricing/sale.ts      Prices a variant under the active sale; per-vendor summary
 extensions/map-guard/        Checkout Function enforcing the same rule (see Checkout enforcement)
+extensions/map-guard-settings/ Admin form for the sale percentage and label
 app/routes/                  Home, collection, product
 server.ts                    Oxygen worker entry
 tests/                       Vitest (tests/map-parity.test.ts keeps storefront and checkout in step)
@@ -87,7 +88,11 @@ Input query cost is 12 of the 30 allowed (three metafield reads at 3 each, plus 
 
 ### Deployment status
 
-Not deployed. The function is built, unit tested and documented, but it is not live. Functions ship as part of a Shopify app via `shopify app deploy`, and the store only has a legacy custom app, which cannot carry Functions. Creating an app with `shopify app init` stops at the prompt "Which organization is this work for?", which needs an interactive CLI login to a Dev Dashboard organization. To deploy: create the app, link it (`shopify.app.toml` with its `client_id`, `extensions/map-guard` as its extension), run `shopify app deploy`, install the app on the store, then create an automatic app discount for the function with the `$app:map-guard` configuration and the `PRODUCT` discount class. None of that has been run. Also unverified: the Wasm build (`shopify app function build`) and the extension's `export` name, which follow the current JavaScript template but have not been compiled here.
+Deployed and installed, but not yet firing. The function ships in the app `assay-map-guard` (version `assay-map-guard-4`), is installed on the store and appears in the admin as the discount type "MAP guard". A discount function runs only when a discount instance of that type exists, and none exists yet, so carts currently get no discount from it.
+
+The sale is configured by a Discount Function Settings extension, `extensions/map-guard-settings` (target `admin.discount-details.function-settings.render`). It writes the sale label and percentage to the `$app:map-guard` / `config` metafield the function reads. Creating the discount from Discounts, Create discount, MAP guard, uses that form.
+
+The remaining step is a merchant approval. The app now declares `write_discounts`, which lets it create the discount itself with `discountAutomaticAppCreate`, but the store has to accept the permission update before the scope is granted; it cannot be granted from the CLI. Once it is accepted (or the discount is created by hand in the admin), run `node scripts/verify-checkout.mjs`. It builds one real cart per MAP case through the Storefront API and compares each line's discount with what the rule allows, and it says plainly when nothing was discounted at all.
 
 ## Running it
 

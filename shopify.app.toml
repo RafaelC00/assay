@@ -12,8 +12,8 @@ api_version = "2026-07"
 
 [access_scopes]
 # The function reads product and variant metafields through its input query.
-# It needs no write access: it returns discount operations, it does not mutate.
-scopes = "read_products"
+# write_discounts lets the app create the automatic discount that runs the function.
+scopes = "read_products,write_discounts"
 
 [auth]
 redirect_urls = [ "https://assay-gamma-ten.vercel.app/api/auth" ]
