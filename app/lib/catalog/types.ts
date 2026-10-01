@@ -32,6 +32,15 @@ export interface Variant {
   map_protected?: boolean;
 }
 
+/** A product photograph as the Storefront API reports it. */
+export interface ProductImage {
+  url: string;
+  /** Describes the product for people who cannot see it. Never empty. */
+  alt: string;
+  width: number;
+  height: number;
+}
+
 export interface Product {
   handle: string;
   title: string;
@@ -44,6 +53,8 @@ export interface Product {
   description: string;
   /** Tests covered by the published third-party assay for this product. */
   assay_panel: string[];
+  /** Photographs, featured image first. Absent in the local JSON source. */
+  images?: ProductImage[];
   map_policy: MapPolicy;
   map_floor_pct?: number;
 }

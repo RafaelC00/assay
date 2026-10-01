@@ -42,6 +42,9 @@ app/lib/pricing/sale.ts      Prices a variant under the active sale; per-vendor 
 extensions/map-guard/        Checkout Function enforcing the same rule (see Checkout enforcement)
 extensions/map-guard-settings/ Admin form for the sale percentage and label
 app/routes/                  Home, collection, product
+app/components/              Product card and image, MAP panels (sale ledger, price meter), assay report
+app/lib/images.ts            Shopify CDN srcset builder
+scripts/images/              Packaging plates, drawn labels, compositor, hero, idempotent Shopify upload
 server.ts                    Oxygen worker entry
 tests/                       Vitest (tests/map-parity.test.ts keeps storefront and checkout in step)
 migrations/                  SQL migrations for the metrics store (see Status)
@@ -119,6 +122,40 @@ Note that `none` and `protected` are only meaningful alongside a case that does
 discount. Before the discount instance existed every cart came back at list
 price, and those two rows "passed" while proving nothing.
 
+## Imagery
+
+Every product has a studio photograph, stored in Shopify and read through the Storefront API (`images` on the product), so it arrives like the rest of the catalog. Descriptions are the alt text: each image is described in Shopify (`Kestrel Labs Magnesium Glycinate, 90 capsules: a matte white supplement bottle with a black ribbed cap, bearing the Kestrel Labs label.`), and the mapper never returns an empty alt.
+
+**How they are made.** Generated type is malformed and generated packaging can drift towards real brands, so the two are kept apart:
+
+1. `scripts/images/generate.py` asks Gemini (web UI, persistent browser profile, no API spend) for 12 *blank* containers: one container per brand and shape, each with an empty white label panel, on one backdrop, one angle, one light. Every run lands in its own timestamped folder under `scripts/images/runs/` (git-ignored, never overwritten); the chosen plates are tracked in `scripts/images/plates/`.
+2. `scripts/images/labels.py` draws each brand's label as SVG: wordmark, mark, product name, size, a drawn barcode. The marks are plain geometry (chevron, arch, meridian, leaf, compass).
+3. `scripts/images/compose.py` renders the SVG with headless Chrome, wraps it round the cylinder and multiplies it onto the plate, so the plate's own light and shadow show through the print. Every master is brought to one backdrop tone. Output: 20 masters and `out/manifest.json` (hash and alt text).
+4. `scripts/images/upload.mjs` stages each master, attaches it to its product and waits for processing. File names carry a content hash, so a re-run uploads nothing, an edited image uploads once and the superseded one is removed from that product.
+5. `scripts/images/hero.py` blends one product per brand into the home page lineup (AVIF, WebP and JPEG, two crops) in `public/hero/`. It is page art, served from the site itself.
+
+Needs Python with `playwright`, `pillow`, `numpy`. Upload needs the Admin token in `.env` (`write_products`, `write_files`).
+
+## Frontend
+
+Warm paper, one display serif (Instrument Serif, self-hosted, 20 KB, preloaded, with a metric-matched fallback so the swap does not move the headline), system sans for text, monospace for the assay report. Brand accents are decorative only; text never depends on them.
+
+The MAP rule is the story, so the pages show it:
+
+- **Home**: a sale ledger. One bar per brand shows the discount a shopper really gets against the 25% headline, with the reason beside it.
+- **Product**: a price meter puts the price the sale asked for and the price that may be advertised on one track and hatches the gap, which is the part MAP refused. Under it, the engine's own sentence, the vendor's policy in plain words and a per-size table (a `partial` vendor can be excluded at one size and discounted at another).
+- Pages carry `data-map-status` / `data-map-policy` attributes and Product JSON-LD with the MAP-resolved price.
+
+Not built: cart. There is no add-to-cart button, because there is no cart.
+
+## Performance
+
+The target is Lighthouse mobile at 90 or better and LCP under 2.5 s, enforced by `npm run perf:budget`. Photography is the usual way to lose both, so:
+
+- Product images: `<picture>` with WebP and a progressive-JPEG fallback, `srcset` at four widths, `sizes` matched to the grid, `width` and `height` on every image (no layout shift), lazy and async below the fold. The first four cards of a collection and the product image are eager, `fetchpriority=high` and preloaded with `imagesrcset`. Shopify's CDN does not serve AVIF; a metered image optimizer was not added for it. A 480 px WebP is about 9 KB.
+- Hero (the LCP element): same-origin AVIF/WebP/JPEG, two crops preloaded under media queries so a phone never fetches the desktop one. Largest file 25 KB.
+- Budgets: the existing bundle numbers are unchanged. Two were added, because neither the hero nor the font lands in the bundle: `largestHeroImageKib` (40) and `webfontsTotalKib` (30).
+
 ## Running it
 
 Requires Node 20 or later.
@@ -135,7 +172,7 @@ npm run build      # production build into dist/
 
 Included: catalog model and data, MAP engine with tests, home page with an exclusions-aware sale banner, collection page with vendor filtering, product page with price and discount explanation.
 
-Not included: cart, checkout, customer accounts.
+Not included: cart, checkout flow in the storefront, customer accounts.
 
 ## Status
 

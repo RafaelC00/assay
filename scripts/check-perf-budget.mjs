@@ -1,4 +1,4 @@
-import {readFileSync, readdirSync, statSync} from 'node:fs';
+import {existsSync, readFileSync, readdirSync, statSync} from 'node:fs';
 import {join} from 'node:path';
 
 /**
@@ -14,6 +14,8 @@ import {join} from 'node:path';
  * raw budget is the stricter and more stable signal.
  */
 const DIR = 'dist/client/assets';
+const HERO_DIR = 'public/hero';
+const FONT_DIR = 'public/fonts';
 const {budgets} = JSON.parse(readFileSync('perf-budget.json', 'utf8'));
 
 const files = readdirSync(DIR).map((f) => ({
@@ -28,10 +30,27 @@ const js = sum('.js');
 const css = sum('.css');
 const largest = files.reduce((a, b) => (a.kib > b.kib ? a : b), {kib: 0, name: '-'});
 
+// The bundle checks above cannot see an image, and photography is the thing that
+// quietly ruins a score. These cover what the repo itself ships from public/:
+// the hero (the page's LCP element) and the webfont. Product photographs are
+// served from Shopify's CDN, resized per request, and are bounded by the
+// responsive srcset in app/lib/images.ts rather than by a file in this repo.
+const kib = (dir, ext) =>
+  existsSync(dir)
+    ? readdirSync(dir)
+        .filter((f) => f.endsWith(ext))
+        .map((f) => ({name: f, kib: statSync(join(dir, f)).size / 1024}))
+    : [];
+const heroes = kib(HERO_DIR, '.avif');
+const heroLargest = heroes.reduce((a, b) => (a.kib > b.kib ? a : b), {kib: 0, name: '-'});
+const fontTotal = kib(FONT_DIR, '.woff2').reduce((n, f) => n + f.kib, 0);
+
 const checks = [
   ['client JS total', js, budgets.totalClientJsKib],
   ['client CSS total', css, budgets.totalClientCssKib],
   [`largest asset (${largest.name})`, largest.kib, budgets.largestSingleAssetKib],
+  [`largest hero AVIF (${heroLargest.name})`, heroLargest.kib, budgets.largestHeroImageKib],
+  ['webfonts total', fontTotal, budgets.webfontsTotalKib],
 ];
 
 let failed = false;
