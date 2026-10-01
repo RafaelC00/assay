@@ -1,6 +1,6 @@
 # Incident 02: two carts contend for the last unit
 
-Status: DRAFT, not reviewed. Not linked from the README or the site.
+Status: findings as originally observed. **Not fixed**: see "Fix".
 Date: 2026-10-01. Times are UTC.
 
 ## Summary
@@ -58,7 +58,10 @@ Run 1 showed the inverse problem. The scenario began immediately after setting s
 - Two stock views disagree during the lag window, in both directions: a unit that exists is refused, and a unit that is gone is accepted.
 - The store is not configured to track inventory at all. That is why the race cannot happen today. It is a configuration fact, not a property of the code.
 
-## Fix (proposed, not implemented here)
+## Fix (not implemented; remains open)
+
+Nothing in PR #7 or any other change addresses this incident. It was not re-run, and no "after" evidence exists. That is a considered choice: the race cannot occur today because the store does not track inventory, so there is no behaviour to fix, only a decision to make (whether the store should track stock) that belongs to whoever runs the store. Sold-out UI for a store that cannot sell out would be code with no real behaviour to test it against. The proposals below stand as written and become relevant the day tracking is switched on.
+
 
 - Decide deliberately whether the store tracks inventory. If it does, the product page should read `availableForSale` and say "Sold out", and the pricing note must not advertise a sale price on a product that cannot be bought. `availableForSale` and `quantityAvailable` are already exposed to the existing public token.
 - When a cart UI is built, render `warnings` from every cart mutation, and treat a line whose merchandise is `availableForSale: false` as removed even when a read still reports its quantity.

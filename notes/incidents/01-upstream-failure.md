@@ -1,6 +1,6 @@
 # Incident 01: Shopify upstream fails or hangs
 
-Status: DRAFT, not reviewed. Not linked from the README or the site.
+Status: findings below are as originally observed; the fixes and their re-test are recorded in "Fix" and "After the fix".
 Date: 2026-10-01. Times below are UTC.
 
 ## Summary
@@ -93,25 +93,69 @@ Nothing needs to recover on the storefront side. Because failures are not cached
 
 A control preview with the correct variables served `/` at 200 with 5 product links in about a second, which confirms the 500s above came from the one changed variable and not from the preview mechanism. All preview deployments were deleted at the end.
 
-## Fix (proposed, not implemented in this change)
+## Fix (implemented in PR #7)
 
-In order:
+What was built, against the three diagnosed properties:
 
-1. `AbortSignal.timeout(3000)` on the Storefront `fetch`. Cheap, and removes the unbounded hang.
-2. Serve the last good snapshot when a refresh fails (stale-if-error), up to a limit such as 10 minutes, and expose that the data is stale. This is the behaviour the spec assumed.
-3. Cache the failure for a few seconds so an outage is retried at a bounded rate.
-4. Render a specific "catalog temporarily unavailable" page with a 503 and `Retry-After`, instead of the generic error page.
-5. Correct the README sentence that implies a runtime fallback. As written it describes startup selection only.
+1. **Timeout.** Every Storefront request carries `AbortSignal.timeout(5000)`. 5 seconds is more than ten times the 230 to 450 ms a catalog page took in these runs, and below the roughly 10 seconds the runtime takes to give up on an unreachable host by itself. A longer bound only holds visitors for an upstream that is not going to answer; a shorter one risks failing a slow but healthy paginated read. It is a judgement informed by those numbers, and it is configurable (`timeoutMs`).
+2. **Stale-if-error.** The source keeps the last good snapshot. When a refresh fails it serves that snapshot instead of throwing, for up to 10 minutes (`maxStaleMs`); older than that, the read fails again. The limit is deliberate: prices and MAP terms decide discounting, and they should not be served indefinitely. This is per process, so each serverless instance has its own snapshot, and only an instance that has already read a good catalog can serve stale.
+3. **Bounded retry rate.** A failed refresh is remembered for 5 seconds (`failureBackoffMs`), so a failing upstream receives about one attempt per window per instance instead of one per page view.
+4. **Visible, not silent.** Every failed refresh is logged with the age of the snapshot being served. `GET /healthz` performs a real catalog read and reports the state:
+
+| State | HTTP | Meaning |
+|---|---|---|
+| `healthy` | 200 | Fresh snapshot, refreshed within 30 seconds. |
+| `stale` | 200 | Last refresh failed; an older snapshot is being served. Body and `X-Catalog-State` say so, with `snapshotAgeMs`, `lastError` and `lastErrorAt`. |
+| `broken` | 503 | Nothing can be served: no snapshot, or the snapshot is older than `maxStaleMs`. |
+
+`stale` returns 200 on purpose, because visitors are being served; a monitor that must alert on it has to match the state in the body or header, not the status code. If the probe itself throws, the route answers 503, never 200.
+
+Not done from the original proposal:
+
+- **No specific "catalog unavailable" page with 503 and `Retry-After`.** With no snapshot to fall back on, a visitor still gets the generic error page. Stale-if-error only helps an instance that has already read the catalog once.
+- **README wording is not corrected here.** The fallback to local JSON is still a start-up decision only. What exists now is stale-if-error from the last live snapshot, which is a different thing, and the README sentence should say so.
+- **`/status` is unchanged.** It still reports on the metrics store only. `/healthz` is the source of truth for the catalog.
+- **No external monitor or log alert was set up.** The endpoint exists; nothing is calling it yet.
+
+One trade-off introduced: because failures are now remembered for 5 seconds, recovery after the upstream heals can take up to 5 seconds on an instance, where before it was immediate.
+
+## After the fix
+
+Local runs of the unchanged `scripts/incidents/` scripts against the new module (same 3-second TTL stand-in as before):
+
+```
+t+0.0s  upstream up, cold read             served (USD)
+--- upstream now returns 503 ---
+t+0.0s  inside TTL                         served (USD)
+t+3.3s  after TTL expired                  served (USD)     (before: FAILED)
+t+3.3s  immediately again                  served (USD)     (before: FAILED, another upstream call)
+```
+
+Each failed refresh also logged `catalog refresh failed (Storefront API responded 503); serving snapshot from <time of last good read>`.
+
+Upstream that accepts and never answers (`stall-upstream.mjs stall`): request 1 rejected after 5014 ms (before: no result after 45 s); request 2 rejected in 0 ms; 2 upstream requests received in total, one shop and products attempt, with the second request not forwarded (before: 4 for 2 reads).
+
+On throwaway preview deployments of this branch, probed with `probe.mjs` and deleted afterwards:
+
+| Case | `/` | `/healthz` | `/status` |
+|---|---|---|---|
+| Correct variables | 200 | 200, `healthy`, age 1126 ms | 200 |
+| Invalid token | 500 (794 ms) | **503**, `broken`, `Storefront API responded 401` | 200 |
+| Unreachable domain (192.0.2.1) | 500 after 5656 ms (before: 10.4 to 11.2 s); next request 172 ms | **503** | 200 |
+
+What this does and does not show. The 503 on `/healthz` is the detection that did not exist. The two failing previews had never read a good catalog, so there was nothing to serve stale and their pages still returned 500; that is expected and unchanged. **Serving stale was not demonstrated on a deployment**, because that needs an upstream that can be switched off after a warm read, and the project's Shopify store is not something to break for a demonstration. It is demonstrated by the local script above and by unit tests that flip a fake upstream between up, down and stalled.
+
+Still true: `/status` stays green during an outage, and nothing watches `/healthz` yet. The honest answer to "what would have told me" is now "an external check on `/healthz`, once someone sets one up". Until then it is still the owner finding out from a visitor.
 
 ## Prevention
 
-- A `/healthz` route that performs the real catalog read and returns non-200 when it fails, with an external uptime check on it. This is the detection that was missing.
-- Show catalog source state on `/status` (age of the last successful snapshot, whether the last refresh failed). `/status` currently reports on one dependency only, which makes it look like it reports on all of them.
+- `/healthz` now exists (see Fix). Still to do: point an external uptime check at it, matching on the state as well as the status code.
+- Show catalog source state on `/status` (age of the last successful snapshot, whether the last refresh failed). Not done. `/status` reports on one dependency only, which makes it look like it reports on all of them.
 - Alert on 5xx rate from the runtime logs.
-- Keep the three scripts in `scripts/incidents/` as regression checks once the fixes land: `stall-upstream.mjs` should then report a rejection or a stale served page within the timeout, not a wait.
+- Keep the three scripts in `scripts/incidents/` as regression checks: they now report a rejection within the timeout or a stale served read, not a wait.
 
-## What did not happen
+## What did not happen (as originally observed, before the fix)
 
-- No silent serving of stale or local data. It was a plausible outcome and did not occur: the source either serves a live snapshot or throws.
-- No cached error. A failed read is not remembered, so recovery was immediate.
+- No silent serving of stale or local data. It was a plausible outcome and did not occur: the source either served a live snapshot or threw. After the fix it does serve stale data, which is why the age and the last error are exposed.
+- No cached error. A failed read was not remembered, so recovery was immediate. After the fix failures are remembered for 5 seconds.
 - The loader errors did not take down `/status`. The two are independent, which is good for isolation and bad for detection.
