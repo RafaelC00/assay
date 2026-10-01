@@ -10,7 +10,7 @@ export const meta = () => [
   {
     name: 'description',
     content:
-      'Supplements from brands that publish third-party assay results. Magnesium, omega-3, creatine, protein and electrolytes, shipped worldwide.',
+      'Supplements from brands that publish third-party assay results. Magnesium, omega-3, creatine, protein and electrolytes,.',
   },
 ];
 
