@@ -3,6 +3,7 @@ api_version = "2026-07"
 [[extensions]]
 name = "MAP guard"
 handle = "map-guard"
+uid = "57fd52bd-c74d-1022-60d4-ed4e1daef83caf4a3f23"
 type = "function"
 description = "Applies the sale at checkout without breaching vendor MAP terms."
 
