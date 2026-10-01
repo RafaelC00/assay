@@ -9,6 +9,18 @@ import type {CatalogSource} from './source';
 export const catalogData = raw as CatalogData;
 
 export const localCatalogSource: CatalogSource = {
+  async getHealth() {
+    // Bundled with the app: it cannot go stale or fail at runtime.
+    return {
+      state: 'healthy',
+      source: 'local',
+      snapshotAgeMs: 0,
+      lastRefreshAt: null,
+      lastError: null,
+      lastErrorAt: null,
+      maxStaleMs: null,
+    };
+  },
   async getCurrency() {
     return catalogData.currency;
   },

@@ -255,7 +255,7 @@ describe('createShopifyCatalogSource', () => {
     expect(f.mock.calls.length).toBeGreaterThan(first);
   });
 
-  it('throws on API errors and does not cache the failure', async () => {
+  it('throws on API errors and retries once the failure backoff has passed', async () => {
     let fail = true;
     const f = vi.fn(async (_u: unknown, init?: RequestInit) => {
       if (fail) return new Response(JSON.stringify({errors: [{message: 'boom'}]}), {status: 200});
@@ -263,9 +263,11 @@ describe('createShopifyCatalogSource', () => {
       const data = body.query.includes('AssayShop') ? shopData : page2;
       return new Response(JSON.stringify({data}), {status: 200});
     });
-    const src = make(f as unknown as typeof fetch);
+    let t = 0;
+    const src = make(f as unknown as typeof fetch, () => t);
     await expect(src.listProducts()).rejects.toThrow(/boom/);
     fail = false;
+    t = 6_000; // past the 5s failure backoff (see catalog-resilience.test.ts)
     expect((await src.listProducts()).length).toBe(1);
   });
 

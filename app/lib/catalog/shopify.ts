@@ -21,7 +21,7 @@
  * run with fixture payloads and no network.
  */
 import type {MapPolicy, Product, Sale, Variant, Vendor} from './types';
-import type {CatalogSource, ProductQuery} from './source';
+import type {CatalogHealth, CatalogSource, ProductQuery} from './source';
 
 // ---------------------------------------------------------------- response shapes
 
@@ -213,8 +213,38 @@ export interface ShopifySourceConfig {
   sale: Sale;
   /** Snapshot lifetime in ms. Default 30s. */
   ttlMs?: number;
+  /**
+   * Per-request bound on a Storefront API call, in ms. Default 5s.
+   *
+   * Why 5s: the Storefront API answers a catalog page in a few hundred ms
+   * (observed 230-450 ms), so 5s is more than 10x normal and still short of
+   * the ~10s the runtime takes to give up on an unreachable host by itself.
+   * A longer bound only holds visitors' requests for an upstream that is not
+   * going to answer; a shorter one risks failing a slow but healthy paginated
+   * read. Before this existed a stalled upstream had not resolved after 45
+   * seconds.
+   */
+  timeoutMs?: number;
+  /**
+   * How long a failed refresh is remembered, in ms. Default 5s. During that
+   * window the source does not call the upstream again, so an outage costs
+   * one attempt per window per instance instead of one per page view.
+   */
+  failureBackoffMs?: number;
+  /**
+   * How old the last good snapshot may be and still be served when a refresh
+   * fails, in ms. Default 10 minutes. Beyond it the read fails: prices and
+   * MAP terms drive discounting, and they should not be served indefinitely
+   * with nobody noticing.
+   */
+  maxStaleMs?: number;
   fetch?: typeof fetch;
   now?: () => number;
+}
+
+function errorMessage(error: unknown): string {
+  const m = error instanceof Error ? error.message : 'unknown error';
+  return m.slice(0, 200);
 }
 
 export function createShopifyCatalogSource(config: ShopifySourceConfig): CatalogSource {
@@ -222,6 +252,10 @@ export function createShopifyCatalogSource(config: ShopifySourceConfig): Catalog
   const now = config.now ?? Date.now;
   const ttl = config.ttlMs ?? 30_000;
   const endpoint = `https://${config.domain}/api/${config.apiVersion}/graphql.json`;
+
+  const timeoutMs = config.timeoutMs ?? 5_000;
+  const backoff = config.failureBackoffMs ?? 5_000;
+  const maxStale = config.maxStaleMs ?? 600_000;
 
   async function query<T>(q: string, variables: Record<string, unknown> = {}): Promise<T> {
     const res = await doFetch(endpoint, {
@@ -231,6 +265,8 @@ export function createShopifyCatalogSource(config: ShopifySourceConfig): Catalog
         'x-shopify-storefront-access-token': config.token,
       },
       body: JSON.stringify({query: q, variables}),
+      // Covers reading the body as well as the response headers.
+      signal: AbortSignal.timeout(timeoutMs),
     });
     if (!res.ok) throw new Error(`Storefront API responded ${res.status}`);
     const json = (await res.json()) as {data?: T; errors?: Array<{message: string}>};
@@ -254,21 +290,78 @@ export function createShopifyCatalogSource(config: ShopifySourceConfig): Catalog
     return mapSnapshot(shop, nodes);
   }
 
-  // One snapshot serves all the calls a single page render makes. Failures are
-  // not cached.
-  let cached: {at: number; value: Promise<Snapshot>} | null = null;
-  function snapshot(): Promise<Snapshot> {
-    if (cached && now() - cached.at < ttl) return cached.value;
-    const value = load();
-    const entry = {at: now(), value};
-    cached = entry;
-    value.catch(() => {
-      if (cached === entry) cached = null;
-    });
-    return value;
+  // State is per process (per serverless instance), not shared.
+  let good: {at: number; value: Snapshot} | null = null;
+  let failure: {at: number; error: unknown} | null = null;
+  let inflight: Promise<Snapshot> | null = null;
+
+  /** The last good snapshot, if still young enough to serve on error. */
+  function staleOr(error: unknown): Snapshot {
+    if (good && now() - good.at <= maxStale) return good.value;
+    throw error;
+  }
+
+  function refresh(): Promise<Snapshot> {
+    if (!inflight) {
+      inflight = (async () => {
+        try {
+          const value = await load();
+          good = {at: now(), value};
+          failure = null;
+          return value;
+        } catch (error) {
+          failure = {at: now(), error};
+          console.warn(
+            `catalog refresh failed (${errorMessage(error)}); ` +
+              (good ? `serving snapshot from ${new Date(good.at).toISOString()}` : 'no snapshot to serve'),
+          );
+          throw error;
+        } finally {
+          inflight = null;
+        }
+      })();
+    }
+    return inflight;
+  }
+
+  // One snapshot serves all the calls a single page render makes. When a
+  // refresh fails the last good snapshot is served instead of an error, for up
+  // to maxStaleMs. That is never silent: getHealth() reports the age and the
+  // last error, and every failed refresh is logged.
+  async function snapshot(): Promise<Snapshot> {
+    const t = now();
+    if (good && t - good.at < ttl) return good.value;
+    if (failure && t - failure.at < backoff) return staleOr(failure.error);
+    try {
+      return await refresh();
+    } catch (error) {
+      return staleOr(error);
+    }
+  }
+
+  async function getHealth(): Promise<CatalogHealth> {
+    // A real read, not a look at cached state: this is what makes it a probe.
+    let served = true;
+    try {
+      await snapshot();
+    } catch {
+      served = false;
+    }
+    const age = good ? Math.max(0, now() - good.at) : null;
+    const base = {
+      source: 'shopify' as const,
+      snapshotAgeMs: age,
+      lastRefreshAt: good ? new Date(good.at).toISOString() : null,
+      lastError: failure ? errorMessage(failure.error) : null,
+      lastErrorAt: failure ? new Date(failure.at).toISOString() : null,
+      maxStaleMs: maxStale,
+    };
+    if (!served) return {...base, state: 'broken'};
+    return {...base, state: age !== null && age >= ttl ? 'stale' : 'healthy'};
   }
 
   return {
+    getHealth,
     async getCurrency() {
       return (await snapshot()).currency;
     },
